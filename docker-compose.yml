@@ -15,12 +15,12 @@ services:
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
     volumes:
       - postgres-backups:/backups
-      - ./scripts/backup-postgres.sh:/tmp/backup-postgres.sh:ro
+      - ./scripts:/scripts:ro
     entrypoint: /bin/sh
     command:
       - -c
       - |
-        cp /tmp/backup-postgres.sh /usr/local/bin/backup-postgres.sh
+        cp /scripts/backup-postgres.sh /usr/local/bin/backup-postgres.sh
         chmod +x /usr/local/bin/backup-postgres.sh
 
         echo "========================================="
