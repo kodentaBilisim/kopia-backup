@@ -1,0 +1,23 @@
+feat: Initial commit - Kopia Docker Backup Stack
+
+Otomatik PostgreSQL ve MinIO yedekleme sistemi:
+- PostgreSQL pg_dump ile günlük otomatik yedekleme (cronjob)
+- Kopia backup server ile web arayüzlü yönetim
+- SSH/SFTP ile uzak sunucuya yedekleme desteği
+- Docker Compose ile kolay kurulum
+- Portainer uyumlu yapılandırma
+- Environment variables ile güvenli yapılandırma
+
+Özellikler:
+- Otomatik eski yedek temizleme
+- Detaylı loglama
+- Health check'ler
+- Read-only volume mount'lar
+- Timezone desteği
+
+Dosyalar:
+- docker-compose.yml: Ana stack yapılandırması
+- scripts/backup-postgres.sh: PostgreSQL backup script'i
+- .env.example: Örnek environment variables
+- README.md: Kapsamlı dokümantasyon
+- .gitignore: Hassas dosyaları koruma

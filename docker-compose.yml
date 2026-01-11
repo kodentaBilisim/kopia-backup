@@ -96,4 +96,5 @@ volumes:
 
 networks:
   default:
-    name: kopia-network
+    external: true
+    name: ${POSTGRES_NETWORK:-arsiv-server-app_default_network}
