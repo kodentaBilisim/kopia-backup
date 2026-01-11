@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   postgres-backup:
-    image: postgres:16-alpine
+    build:
+      context: ./postgres-backup
+      dockerfile: Dockerfile
     container_name: postgres-backup
     restart: unless-stopped
     environment:
@@ -15,14 +17,9 @@ services:
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
     volumes:
       - postgres-backups:/backups
-      - ./scripts:/scripts:ro
-    entrypoint: /bin/sh
     command:
       - -c
       - |
-        cp /scripts/backup-postgres.sh /usr/local/bin/backup-postgres.sh
-        chmod +x /usr/local/bin/backup-postgres.sh
-
         echo "========================================="
         echo "PostgreSQL Backup Service başlatıldı"
         echo "Bağlantı: ${PGUSER}@${PGHOST}:${PGPORT}/${PGDATABASE}"
