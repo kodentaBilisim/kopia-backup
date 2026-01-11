@@ -97,4 +97,4 @@ volumes:
 networks:
   default:
     external: true
-    name: ${POSTGRES_NETWORK:-arsiv-server-app_default_network}
+    name: ${POSTGRES_NETWORK:-arsiv-server-app_arsiv_network}
