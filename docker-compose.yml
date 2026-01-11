@@ -1,54 +1,26 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Otomatik Yedekleme Servisi
   postgres-backup:
     image: postgres:16-alpine
     container_name: postgres-backup
     restart: unless-stopped
     environment:
-      # PostgreSQL bağlantı bilgileri (environment variables'dan alınır)
       PGHOST: ${POSTGRES_HOST}
       PGPORT: ${POSTGRES_PORT:-5432}
       PGDATABASE: ${POSTGRES_DB}
       PGUSER: ${POSTGRES_USER}
       PGPASSWORD: ${POSTGRES_PASSWORD}
       TZ: ${TZ:-Europe/Istanbul}
-      # Yedekleme ayarları
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
     volumes:
       - postgres-backups:/backups
+      - ./scripts/backup-postgres.sh:/tmp/backup-postgres.sh:ro
     entrypoint: /bin/sh
     command:
       - -c
       - |
-        # Backup script'ini oluştur
-        cat > /usr/local/bin/backup-postgres.sh << 'EOF'
-        #!/bin/sh
-        set -e
-        BACKUP_DIR="/backups"
-        mkdir -p "${BACKUP_DIR}"
-        TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-        BACKUP_FILE="${BACKUP_DIR}/postgres_backup_${TIMESTAMP}.sql.gz"
-        echo "[$(date)] PostgreSQL yedekleme başlatılıyor..."
-        echo "[$(date)] Bağlantı: ${PGUSER}@${PGHOST}:${PGPORT}/${PGDATABASE}"
-        if pg_dump -Fc -Z9 > "${BACKUP_FILE}" 2>&1; then
-            BACKUP_SIZE=$(du -h "${BACKUP_FILE}" | cut -f1)
-            echo "[$(date)] ✓ Yedekleme başarılı: ${BACKUP_FILE} (${BACKUP_SIZE})"
-            RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-7}
-            DELETED_COUNT=$(find "${BACKUP_DIR}" -name 'postgres_backup_*.sql.gz' -mtime +${RETENTION_DAYS} -delete -print | wc -l)
-            if [ "$DELETED_COUNT" -gt 0 ]; then
-                echo "[$(date)] ${DELETED_COUNT} eski yedek silindi (${RETENTION_DAYS} günden eski)"
-            fi
-            TOTAL_BACKUPS=$(find "${BACKUP_DIR}" -name 'postgres_backup_*.sql.gz' | wc -l)
-            echo "[$(date)] Toplam yedek sayısı: ${TOTAL_BACKUPS}"
-            exit 0
-        else
-            echo "[$(date)] ✗ HATA: Yedekleme başarısız oldu!"
-            exit 1
-        fi
-        EOF
-
+        cp /tmp/backup-postgres.sh /usr/local/bin/backup-postgres.sh
         chmod +x /usr/local/bin/backup-postgres.sh
 
         echo "========================================="
@@ -57,7 +29,7 @@ services:
         echo "========================================="
         echo "İlk yedekleme başlatılıyor..."
 
-        /usr/local/bin/backup-postgres.sh 2>&1 | tee -a /var/log/backup.log || echo "İlk yedekleme başarısız (PostgreSQL henüz hazır olmayabilir)"
+        /usr/local/bin/backup-postgres.sh 2>&1 | tee -a /var/log/backup.log || echo "İlk yedekleme başarısız"
 
         echo "========================================="
         echo "Cronjob ayarlanıyor: Her gün saat 01:00"
@@ -85,19 +57,12 @@ services:
       KOPIA_PERSIST_CREDENTIALS_ON_CONNECT: "true"
       KOPIA_CHECK_FOR_UPDATES: "true"
     volumes:
-      # Kopia yapılandırma ve cache dizini
       - kopia-config:/app/config
       - kopia-cache:/app/cache
       - kopia-logs:/app/logs
-
-      # PostgreSQL yedekleri (pg_dump ile alınan)
       - postgres-backups:/data/postgres-dumps:ro
-
-      # Yedeklenecek Docker volume'lar (read-only)
       - ${POSTGRES_VOLUME_PATH}:/data/postgres-volume:ro
       - ${MINIO_VOLUME_PATH}:/data/minio:ro
-
-      # SSH key mount (uzak sunucuya bağlanmak için)
       - ${SSH_KEYS_PATH:-./ssh-keys}:/root/.ssh:ro
     depends_on:
       - postgres-backup
